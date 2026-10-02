@@ -17,7 +17,9 @@ const tripTypes: { id: TripType; label: string }[] = [
 
 const schema = z.object({
   name: z.string().min(1, "Required"),
-  tripType: z.enum(["solo", "couple", "family", "group"]),
+  tripType: z.enum(["solo", "couple", "family", "group"], {
+    message: "Trip type is required",
+  }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -69,6 +71,8 @@ export default function TripForm({ defaultValues, submitLabel, onSubmit }: TripF
               itemToString={(item) => item?.label ?? ""}
               selectedItem={tripTypes.find((t) => t.id === field.value) ?? null}
               onChange={({ selectedItem }) => field.onChange(selectedItem?.id)}
+              invalid={!!errors.tripType}
+              invalidText={errors.tripType?.message}
             />
           )}
         />

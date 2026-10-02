@@ -1,0 +1,13 @@
+{
+  "name": "trip-planner-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests spanning the frontend and backend apps (each app's own unit/integration tests live inside frontend/ and backend/).",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}
