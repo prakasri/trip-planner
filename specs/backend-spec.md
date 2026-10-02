@@ -3,12 +3,16 @@
 ## Tech Stack
 <!-- Language, framework, runtime -->
 - Language: TypeScript
-- Framework: Next.js API routes (App Router Route Handlers, `app/api/**/route.ts`) — same app/repo as the frontend
-- Runtime: Node.js (AWS Lambda, via AWS Amplify Hosting's managed Next.js SSR/API compute)
+- Framework: Next.js API routes (App Router Route Handlers, `app/api/**/route.ts`) — its own app/repo, containing no page routes (API-only)
+- Runtime: Node.js (AWS Lambda, via AWS Amplify Hosting's managed Next.js API compute)
 
 ## Architecture
 <!-- Monolith, microservices, serverless, etc. -->
-Monolith: a single Next.js app serves both the frontend and the backend. The backend is a set of serverless Route Handlers under `app/api/`, implementing the REST contract defined in `api-contract-spec.md`. No separate backend service/repo/deploy for v1.
+Two separately deployed apps:
+- **Frontend**: Next.js pages (App Router), deployed on Vercel — see `frontend-spec.md`.
+- **Backend**: this app — an API-only Next.js app (Route Handlers under `app/api/`, no pages) implementing the REST contract in `api-contract-spec.md` — deployed on AWS Amplify Hosting.
+
+The two communicate over HTTPS as a cross-origin client/server pair (different domains), which has two consequences handled below: CORS must be configured on the backend to allow the frontend's origin(s), and the session cookie must be usable cross-site (see Authentication & Authorization, Security Considerations).
 
 ## Data Model / Database Schema
 <!-- Entities, fields, relationships -->
@@ -76,7 +80,8 @@ Monolith: a single Next.js app serves both the frontend and the backend. The bac
 ## Authentication & Authorization
 <!-- Auth method, roles/permissions, session handling -->
 - **Method**: username + password. Passwords hashed with bcrypt (`bcryptjs`, to avoid native-binding issues in serverless) before storage; plaintext passwords are never stored or logged.
-- **Session**: stateless, signed + encrypted session cookie (`iron-session`) containing the User's id. No server-side session table needed. Cookie flags: `httpOnly`, `secure` (production), `sameSite: lax`.
+- **Session**: stateless, signed + encrypted session cookie (`iron-session`) containing the User's id. No server-side session table needed. Cookie flags: `httpOnly`, `secure` (required), `sameSite: none` — `none` is required because the frontend (Vercel) and backend (AWS Amplify) are different domains, so the cookie must be sent cross-site; this requires HTTPS everywhere, which both platforms provide by default.
+- **CORS**: the backend must respond with `Access-Control-Allow-Origin: <frontend origin>` (not a wildcard — wildcards are incompatible with credentialed requests) and `Access-Control-Allow-Credentials: true` on every response, and handle `OPTIONS` preflight requests. The frontend's `fetch` calls must use `credentials: 'include'` for the cookie to be sent/received.
 - **Authorization**: no roles/permissions tiers — every User can only read/write their own Trips. Every API route that touches a Trip, Destination, or Activity must verify the resource's owning Trip's `userId` matches the session's user id; mismatches return `404` (not `403`, to avoid confirming a resource's existence to a non-owner).
 - **Route protection**: all `/api/trips/**` routes require a valid session; `/api/auth/login` and `/api/auth/signup` do not.
 
@@ -99,7 +104,8 @@ None for v1 — all operations are synchronous request/response.
 - Ownership checks (see Authorization) on every resource access to prevent IDOR (one user accessing another user's Trip/Destination/Activity by guessing an id).
 - Basic rate limiting on `/api/auth/login` and `/api/auth/signup` (e.g. per-IP, via `@upstash/ratelimit`) to deter brute-force credential guessing.
 - Secrets (`DATABASE_URL`, session encryption key) stored as environment variables (`.env.local` locally, AWS Amplify Hosting environment variables in production) — never committed to the repo.
-- Session cookie is `httpOnly` + `secure` + `sameSite: lax`, mitigating XSS cookie theft and most CSRF vectors for a same-origin app.
+- Session cookie is `httpOnly` + `secure`, mitigating XSS cookie theft. Because cross-origin hosting requires `sameSite: none`, the cookie's `SameSite` attribute no longer provides CSRF protection (as it would same-site) — every mutating route (`POST`/`PATCH`/`DELETE`) must explicitly check the request's `Origin` header matches the known frontend origin(s) and reject otherwise.
+- CORS is locked down to an explicit allowlist of frontend origin(s) (never `Access-Control-Allow-Origin: *`, which is both insecure and incompatible with credentialed cookies).
 
 ## Non-Functional Requirements
 <!-- Scalability, performance, uptime -->
@@ -109,13 +115,17 @@ None for v1 — all operations are synchronous request/response.
 
 ## Deployment / Infra
 <!-- Hosting, CI/CD, environments -->
-- Hosting: AWS Amplify Hosting (frontend + API routes deployed together as one Next.js app, via Amplify's managed Next.js SSR/API support)
+- Hosting: AWS Amplify Hosting, this API-only Next.js app, in its own repo separate from the frontend (which is deployed on Vercel — see `frontend-spec.md`)
 - Database: Neon Postgres, provisioned separately (not AWS-native), connected via `DATABASE_URL` — Neon's built-in connection pooling suits Lambda-based serverless compute better than a direct RDS connection would
-- Environments: `development` (local, `.env.local` + a dev Neon branch) and `production` (Amplify environment variables + production Neon branch); Amplify's branch-based deploys can also give each git branch its own preview environment if useful
+- Cross-origin config: an `ALLOWED_ORIGIN` environment variable holds the frontend's current origin, used for both the CORS `Access-Control-Allow-Origin` header and the `Origin`-check CSRF defense (see Security Considerations). This must be updated per environment — see below.
+- Environments:
+  - `development`: local backend (`.env.local` + a dev Neon branch), `ALLOWED_ORIGIN=http://localhost:3000` (local frontend dev server)
+  - `production`: Amplify environment variables + production Neon branch, `ALLOWED_ORIGIN=<frontend's production domain>`
 - CI/CD: AWS Amplify's built-in Git integration — push to `main` auto-builds and deploys to production via an `amplify.yml` build spec. No separate CI pipeline needed for v1.
 - Migrations: run `prisma migrate deploy` as a build step in `amplify.yml` (before `next build`) so schema changes land before the new code that depends on them.
 
 ## Open Questions
+- Vercel generates a unique preview URL per branch/PR — if preview deployments need to call this backend, `ALLOWED_ORIGIN` (a single value) won't cover them. Is a preview environment needed for v1, or is testing against `production`/`localhost` only sufficient?
 - Should there be a maximum number of Trips/Destinations/Activities per user for v1 (abuse/cost control), or is that unnecessary at this scale?
 - Is case-insensitive, trimmed username matching sufficient for uniqueness, or do we need additional username format rules (length, allowed characters)?
 - Do we need a minimum password strength/length rule at signup, and if so, what?

@@ -7,6 +7,7 @@
 - Styling: IBM Carbon Design System (`@carbon/react` components + Carbon's Sass styles). No Tailwind — Carbon's own styling replaces it.
 - State Management: React Context (auth/session) + local component state; no global store (Redux/Zustand) needed at this scale
 - Build Tool: Next.js built-in (Turbopack/Webpack); `sass` added as a dev dependency since Carbon ships Sass source
+- Hosting: Vercel. This is its own app/repo, separate from the backend (an API-only Next.js app on AWS Amplify — see `backend-spec.md`), communicating over HTTPS with the backend's REST API.
 
 ## Design System
 <!-- IBM Carbon Design System — theme, typography, color -->
@@ -49,7 +50,7 @@
 - `DayCard` — content of one `AccordionItem`: lists that Day's Activities and an "add Activity" control
 - `ActivityForm` — add/edit a single Activity on a Day, using Carbon `TextInput`/`TextArea` and `Button`
 - `ExportItineraryButton` — Carbon `Button` (with `Download` icon from `@carbon/icons-react`) that triggers client-side PDF generation of the Trip's full Itinerary
-- `ProtectedLayout` — layout wrapper that redirects unauthenticated users to `/login` (no Carbon UI of its own)
+- `ProtectedLayout` — client-side layout wrapper: checks `AuthContext` on mount, shows a brief loading state while that check resolves, then redirects unauthenticated users to `/login` (no Carbon UI of its own)
 
 ## User Flows
 <!-- Step-by-step walkthroughs of key journeys, e.g. "Create a trip" -->
@@ -70,17 +71,18 @@
 
 ## State Management Details
 <!-- What global state exists, where it lives, how it's updated -->
-- **Auth/session**: the backend sets an httpOnly session cookie on login/signup; a thin `AuthContext` on the frontend holds the current user (id, username) fetched once on app load for UI purposes (e.g. showing username in the header). Route protection is enforced server-side (Next.js middleware checking the session cookie), not just client-side state.
-- **Trip/Destination/Activity data**: not held in global state. Each page fetches what it needs (see Data Fetching Strategy) and passes data down via props.
+- **Auth/session**: the backend (a different domain — AWS Amplify) sets an httpOnly, cross-site session cookie on login/signup. Because that cookie belongs to the backend's domain, the frontend's own server (Vercel) cannot read it during SSR — so auth state and route protection are handled entirely client-side: on app load, `AuthContext` calls the backend's "current user" endpoint with `credentials: 'include'`; the browser attaches the cookie since the call targets the backend's domain. The result (authenticated user, or not) drives both the header UI and `ProtectedLayout`'s redirect logic.
+- **Trip/Destination/Activity data**: not held in global state. Each page fetches what it needs client-side (see Data Fetching Strategy) and passes data down via props.
 - **Form state**: local to each form component (React Hook Form), not lifted to global state.
 
 ## Data Fetching Strategy
 <!-- REST/GraphQL, client-side vs server-side, caching, loading/error states -->
-- All data comes from the REST API defined in `api-contract-spec.md`.
-- Initial reads (Trips list, Trip detail, Destination day plan) are fetched in Next.js Server Components on each route, forwarding the session cookie to the backend.
-- Mutations (create/edit Trip, Destination, Activity; login/signup) are done from Client Components using `fetch`, then the current route is revalidated/refreshed to reflect the change.
-- Loading states: per-route `loading.tsx` (skeleton UI) for initial Server Component fetches; inline spinners/disabled submit buttons for in-flight mutations.
-- Error states: per-route `error.tsx` boundary for failed initial fetches; inline form error messages (from the API's error response) for failed mutations.
+- All data comes from the REST API defined in `api-contract-spec.md`, served from the backend's own origin (`NEXT_PUBLIC_API_BASE_URL`), not a relative `/api` path — the backend is a separate deployment.
+- **All reads and writes happen client-side**, not in Server Components: because the session cookie is scoped to the backend's domain, the frontend's server has no way to make an authenticated request on the user's behalf during SSR. Every page's data (Trips list, Trip detail, Destination day plan) is fetched in a Client Component via `swr`, using `fetch(..., { credentials: 'include' })` directly from the browser to the backend.
+- Mutations (create/edit Trip, Destination, Activity; login/signup) also go through client-side `fetch` with `credentials: 'include'`, followed by an SWR cache revalidation (`mutate`) to refresh the affected data.
+- Loading states: SWR's `isLoading` drives skeleton UI inline within each page's Client Component (no `loading.tsx` server-fetch gating, since there's no server-side data fetch to wait on).
+- Error states: SWR's `error` drives inline error UI (Carbon `InlineNotification`) within the page; inline form error messages (from the API's error response) for failed mutations.
+- Trade-off accepted: authenticated pages render an initial loading state (while the client-side fetch resolves) rather than arriving pre-rendered with data, and protected routes briefly show a loading state before redirecting unauthenticated users (see `ProtectedLayout`) rather than being blocked at the server.
 
 ## Responsive / Device Support
 <!-- Mobile, tablet, desktop breakpoints -->
