@@ -8,6 +8,11 @@ applications:
             - npm ci
         build:
           commands:
+            # Amplify only injects its app-level environment variables at
+            # build time, not into the running SSR compute instance — Next.js
+            # re-reads .env.production at server startup, so this is what
+            # actually makes these available to route handlers at runtime.
+            - env | grep -e '^DATABASE_URL=' -e '^DIRECT_URL=' -e '^SESSION_SECRET=' -e '^ALLOWED_ORIGIN=' >> .env.production
             - npx prisma generate
             - npx prisma migrate deploy
             - npm run build
