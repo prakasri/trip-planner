@@ -4,9 +4,27 @@
 <!-- Framework, language, styling, state management, build tool -->
 - Framework: Next.js (React, App Router)
 - Language: TypeScript
-- Styling: Tailwind CSS
+- Styling: IBM Carbon Design System (`@carbon/react` components + Carbon's Sass styles). No Tailwind — Carbon's own styling replaces it.
 - State Management: React Context (auth/session) + local component state; no global store (Redux/Zustand) needed at this scale
-- Build Tool: Next.js built-in (Turbopack/Webpack)
+- Build Tool: Next.js built-in (Turbopack/Webpack); `sass` added as a dev dependency since Carbon ships Sass source
+
+## Design System
+<!-- IBM Carbon Design System — theme, typography, color -->
+- **Design system**: [IBM Carbon Design System](https://carbondesignsystem.com/), consumed via `@carbon/react` (components) and `@carbon/styles` (design tokens, grid, type).
+- **Theme**: White (Carbon's default light theme), applied globally via Carbon's `Theme` component / `g10`→`white` CSS class on the root. No per-component theme overrides for v1.
+- **Typography**: IBM Plex Sans, loaded via Carbon's default type styles (`@carbon/styles` type tokens: `heading-01`…`heading-07`, `body-01`, `body-02`, etc.). No custom font or type scale — use Carbon's tokens as-is rather than hardcoded font sizes.
+- **Color**: Carbon's White theme tokens, referenced via Carbon's CSS custom properties (e.g. `var(--cds-background)`, `var(--cds-text-primary)`, `var(--cds-link-primary)`) rather than hardcoded hex values, so the app stays themeable. Key tokens:
+  | Token | White theme value | Usage |
+  |-------|-------------------|-------|
+  | `background` | `#ffffff` | Page background |
+  | `layer-01` | `#f4f4f4` | Cards/Tiles surface |
+  | `text-primary` | `#161616` | Primary text |
+  | `text-secondary` | `#525252` | Secondary/helper text |
+  | `link-primary` / `interactive` | `#0f62fe` (Blue 60) | Primary buttons, links, focus |
+  | `support-success` | `#24a148` | Success messages |
+  | `support-error` | `#da1e28` | Error messages, validation |
+  | `support-warning` | `#f1c21b` | Warnings |
+  | `border-subtle` | `#e0e0e0` | Dividers, input borders |
 
 ## Pages / Routes
 <!-- List each page/route and its purpose -->
@@ -21,17 +39,17 @@
 
 ## Key Components
 <!-- Reusable components and what they do -->
-- `AuthForm` — shared form shell for Login/Signup (username, password, submit, inline error)
-- `AppHeader` — nav bar with app name, link to Trips list, logout action (shown only when authenticated)
-- `TripCard` — summary of one Trip in the Trips list (name, Trip Type, date range, destination count)
-- `TripForm` — create/edit a Trip (name, Trip Type)
-- `DestinationCard` — summary of one Destination within a Trip (name, start/end dates, link into its day-by-day planner)
-- `DestinationForm` — add/edit a Destination (name, start date, end date)
-- `DayPlanner` — renders Day 1 through Day N for a Destination, derived from its start/end dates
-- `DayCard` — one Day, listing its Activities and an "add Activity" control
-- `ActivityForm` — add/edit a single Activity on a Day (description, optional time)
-- `ExportItineraryButton` — triggers client-side PDF generation of the Trip's full Itinerary
-- `ProtectedLayout` — layout wrapper that redirects unauthenticated users to `/login`
+- `AuthForm` — shared form shell for Login/Signup, built on Carbon `TextInput`/`PasswordInput`, `Button`, `InlineNotification` for errors
+- `AppHeader` — Carbon `Header` with app name, link to Trips list, logout `HeaderGlobalAction` (shown only when authenticated)
+- `TripCard` — Carbon `ClickableTile` summarizing one Trip in the Trips list (name, Trip Type, date range, destination count)
+- `TripForm` — create/edit a Trip using Carbon `TextInput` (name) and `Dropdown` (Trip Type)
+- `DestinationCard` — Carbon `Tile` summarizing one Destination within a Trip (name, start/end dates, link into its day-by-day planner)
+- `DestinationForm` — add/edit a Destination using Carbon `TextInput` and `DatePicker` (range mode for start/end dates)
+- `DayPlanner` — Carbon `Accordion`, one `AccordionItem` per Day (Day 1 through Day N, derived from the Destination's start/end dates)
+- `DayCard` — content of one `AccordionItem`: lists that Day's Activities and an "add Activity" control
+- `ActivityForm` — add/edit a single Activity on a Day, using Carbon `TextInput`/`TextArea` and `Button`
+- `ExportItineraryButton` — Carbon `Button` (with `Download` icon from `@carbon/icons-react`) that triggers client-side PDF generation of the Trip's full Itinerary
+- `ProtectedLayout` — layout wrapper that redirects unauthenticated users to `/login` (no Carbon UI of its own)
 
 ## User Flows
 <!-- Step-by-step walkthroughs of key journeys, e.g. "Create a trip" -->
@@ -66,19 +84,20 @@
 
 ## Responsive / Device Support
 <!-- Mobile, tablet, desktop breakpoints -->
-- Mobile-first layout using Tailwind's default breakpoints: base (< 640px, phones), `md:` (≥ 768px, tablets), `lg:` (≥ 1024px, desktop).
-- Nav collapses to a simple top bar with a menu button below `md:`.
-- Day-by-day planner: single-column stacked Day cards on mobile; multi-column or list+detail layout at `lg:` and above.
-- Minimum supported width: 375px.
+- Mobile-first layout using Carbon's grid breakpoints: `sm` (≥ 320px, phones), `md` (≥ 672px, tablets), `lg` (≥ 1056px, desktop), `xlg` (≥ 1312px).
+- `AppHeader` collapses to Carbon's mobile Header pattern (hamburger/side nav) below `md`.
+- Day-by-day planner: Accordion stacks full-width on mobile; at `lg` and above, use Carbon's grid to show a Destination list alongside the open Day's detail.
+- Minimum supported width: 320px (Carbon's smallest breakpoint).
 
 ## Accessibility Requirements
-- All form inputs have associated `<label>` elements.
-- All interactive elements (including icon-only buttons like delete/edit) are keyboard-reachable and have accessible names (`aria-label` where no visible text).
-- Visible focus states on all interactive elements.
-- Color contrast meets WCAG AA for text and interactive elements.
+- Carbon components are WCAG 2.1 AA compliant out of the box (labeling, keyboard support, focus states) — default to Carbon's built-in behavior rather than overriding it.
+- Any custom (non-Carbon) element must still meet the same bar: associated `<label>`s on inputs, accessible names on icon-only controls, visible focus states, and AA color contrast using Carbon tokens.
 
 ## Third-Party Libraries / Integrations
-- `react-hook-form` + `zod` — form state and validation
+- `@carbon/react` — component library (forms, navigation, tiles, accordion, notifications, etc.)
+- `@carbon/icons-react` — icons (e.g. Download icon for export)
+- `@carbon/styles` + `sass` — Carbon design tokens, grid, and type, compiled via Sass
+- `react-hook-form` + `zod` — form state and validation, wired into Carbon form components
 - `swr` — client-side data fetching/caching for mutation-triggered refetches where Server Component revalidation isn't a good fit
 - `@react-pdf/renderer` — client-side PDF generation for itinerary export
 - `date-fns` — date range math (deriving Day 1..N from a Destination's start/end dates)
