@@ -70,8 +70,18 @@ export default function DestinationForm({ onSubmit, onCancel }: DestinationFormP
               dateFormat="Y-m-d"
               onChange={(dates: Date[]) => field.onChange(dates)}
             >
-              <DatePickerInput id="destination-start" labelText="Start date" placeholder="yyyy-mm-dd" />
-              <DatePickerInput id="destination-end" labelText="End date" placeholder="yyyy-mm-dd" />
+              <DatePickerInput
+                id="destination-start"
+                labelText="Start date"
+                placeholder="yyyy-mm-dd"
+                pattern="\d{4}-\d{2}-\d{2}"
+              />
+              <DatePickerInput
+                id="destination-end"
+                labelText="End date"
+                placeholder="yyyy-mm-dd"
+                pattern="\d{4}-\d{2}-\d{2}"
+              />
             </DatePicker>
           )}
         />

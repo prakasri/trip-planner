@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { createTripSchema } from "@/lib/validation";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeTrip } from "@/lib/serializers";
 
 export async function GET() {
   const session = await getSession();
@@ -43,5 +44,5 @@ export async function POST(request: Request) {
     data: { ...parsed.data, userId: session.userId },
   });
 
-  return jsonSuccess({ trip }, 201);
+  return jsonSuccess({ trip: serializeTrip(trip) }, 201);
 }

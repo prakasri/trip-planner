@@ -4,6 +4,7 @@ import { getOwnedDestination } from "@/lib/ownership";
 import { createActivitySchema } from "@/lib/validation";
 import { dayCount } from "@/lib/dayCount";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeActivity } from "@/lib/serializers";
 
 type Params = { params: Promise<{ tripId: string; destinationId: string }> };
 
@@ -29,5 +30,5 @@ export async function POST(request: Request, { params }: Params) {
     data: { ...parsed.data, destinationId },
   });
 
-  return jsonSuccess({ activity }, 201);
+  return jsonSuccess({ activity: serializeActivity(activity) }, 201);
 }

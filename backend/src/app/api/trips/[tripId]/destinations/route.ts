@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getOwnedTrip } from "@/lib/ownership";
 import { createDestinationSchema } from "@/lib/validation";
-import { dayCount } from "@/lib/dayCount";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeDestination } from "@/lib/serializers";
 
 type Params = { params: Promise<{ tripId: string }> };
 
@@ -24,18 +24,5 @@ export async function POST(request: Request, { params }: Params) {
     data: { ...parsed.data, tripId },
   });
 
-  return jsonSuccess(
-    {
-      destination: {
-        id: destination.id,
-        name: destination.name,
-        startDate: destination.startDate.toISOString().slice(0, 10),
-        endDate: destination.endDate.toISOString().slice(0, 10),
-        dayCount: dayCount(destination.startDate, destination.endDate),
-        createdAt: destination.createdAt,
-        updatedAt: destination.updatedAt,
-      },
-    },
-    201,
-  );
+  return jsonSuccess({ destination: serializeDestination(destination) }, 201);
 }

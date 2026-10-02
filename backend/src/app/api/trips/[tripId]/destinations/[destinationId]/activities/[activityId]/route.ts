@@ -4,6 +4,7 @@ import { getOwnedActivity, getOwnedDestination } from "@/lib/ownership";
 import { updateActivitySchema } from "@/lib/validation";
 import { dayCount } from "@/lib/dayCount";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeActivity } from "@/lib/serializers";
 
 type Params = { params: Promise<{ tripId: string; destinationId: string; activityId: string }> };
 
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const activity = await prisma.activity.update({ where: { id: activityId }, data: parsed.data });
-  return jsonSuccess({ activity });
+  return jsonSuccess({ activity: serializeActivity(activity) });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

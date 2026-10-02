@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { getOwnedTrip } from "@/lib/ownership";
 import { updateTripSchema } from "@/lib/validation";
-import { dayCount } from "@/lib/dayCount";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeTrip, serializeDestination } from "@/lib/serializers";
 
 type Params = { params: Promise<{ tripId: string }> };
 
@@ -20,18 +20,8 @@ export async function GET(_request: Request, { params }: Params) {
 
   return jsonSuccess({
     trip: {
-      id: trip.id,
-      name: trip.name,
-      tripType: trip.tripType,
-      createdAt: trip.createdAt,
-      updatedAt: trip.updatedAt,
-      destinations: trip.destinations.map((d) => ({
-        id: d.id,
-        name: d.name,
-        startDate: d.startDate.toISOString().slice(0, 10),
-        endDate: d.endDate.toISOString().slice(0, 10),
-        dayCount: dayCount(d.startDate, d.endDate),
-      })),
+      ...serializeTrip(trip),
+      destinations: trip.destinations.map(serializeDestination),
     },
   });
 }
@@ -50,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const trip = await prisma.trip.update({ where: { id: tripId }, data: parsed.data });
-  return jsonSuccess({ trip });
+  return jsonSuccess({ trip: serializeTrip(trip) });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

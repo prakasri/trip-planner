@@ -4,6 +4,7 @@ import { getOwnedDestination } from "@/lib/ownership";
 import { updateDestinationSchema } from "@/lib/validation";
 import { dayCount } from "@/lib/dayCount";
 import { jsonError, jsonSuccess } from "@/lib/http";
+import { serializeDestination, serializeActivity } from "@/lib/serializers";
 
 type Params = { params: Promise<{ tripId: string; destinationId: string }> };
 
@@ -20,18 +21,8 @@ export async function GET(_request: Request, { params }: Params) {
 
   return jsonSuccess({
     destination: {
-      id: destination.id,
-      name: destination.name,
-      startDate: destination.startDate.toISOString().slice(0, 10),
-      endDate: destination.endDate.toISOString().slice(0, 10),
-      dayCount: dayCount(destination.startDate, destination.endDate),
-      activities: destination.activities.map((a) => ({
-        id: a.id,
-        dayNumber: a.dayNumber,
-        description: a.description,
-        createdAt: a.createdAt,
-        updatedAt: a.updatedAt,
-      })),
+      ...serializeDestination(destination),
+      activities: destination.activities.map(serializeActivity),
     },
   });
 }
@@ -72,17 +63,7 @@ export async function PATCH(request: Request, { params }: Params) {
     data: parsed.data,
   });
 
-  return jsonSuccess({
-    destination: {
-      id: destination.id,
-      name: destination.name,
-      startDate: destination.startDate.toISOString().slice(0, 10),
-      endDate: destination.endDate.toISOString().slice(0, 10),
-      dayCount: dayCount(destination.startDate, destination.endDate),
-      createdAt: destination.createdAt,
-      updatedAt: destination.updatedAt,
-    },
-  });
+  return jsonSuccess({ destination: serializeDestination(destination) });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

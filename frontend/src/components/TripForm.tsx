@@ -67,7 +67,7 @@ export default function TripForm({ defaultValues, submitLabel, onSubmit }: TripF
               label="Select a trip type"
               items={tripTypes}
               itemToString={(item) => item?.label ?? ""}
-              selectedItem={tripTypes.find((t) => t.id === field.value)}
+              selectedItem={tripTypes.find((t) => t.id === field.value) ?? null}
               onChange={({ selectedItem }) => field.onChange(selectedItem?.id)}
             />
           )}
