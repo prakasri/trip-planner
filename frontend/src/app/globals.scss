@@ -1,0 +1,10 @@
+// Carbon's full component + type + grid + reset styles.
+// See specs/frontend-spec.md > Design System.
+//
+// $css--font-face: false — Carbon's bundled @font-face declarations resolve
+// font files via webpack-only `~package/...` tilde paths, which Turbopack
+// can't resolve (fails the build). IBM Plex Sans is loaded instead via
+// next/font/google in layout.tsx, which registers the same family name.
+@use "@carbon/react" with (
+  $css--font-face: false
+);
