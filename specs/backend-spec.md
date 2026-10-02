@@ -75,6 +75,9 @@ The two communicate over HTTPS as a cross-origin client/server pair (different d
 - An Activity's `dayNumber` must be between 1 and the day count derived from its Destination's `startDate`/`endDate` (recomputed server-side on every write — never trust a client-supplied bound).
 - A Trip's `tripType` must be one of the four defined values (`solo`, `couple`, `family`, `group`); reject anything else with a validation error.
 - `username` must be unique (case-insensitive) at signup; attempting to register an existing username returns a validation error, not a 500.
+- `username` must be 3–30 characters, alphanumeric plus underscore/hyphen only.
+- `password` must be at least 8 characters (no other strength requirement for v1).
+- No maximum number of Trips/Destinations/Activities per user for v1 (personal-use scale, no abuse/cost concern).
 - All reads/writes to a Trip (and its nested Destinations/Activities) are scoped to the authenticated User who owns that Trip — see Authentication & Authorization.
 
 ## Authentication & Authorization
@@ -102,7 +105,7 @@ None for v1 — all operations are synchronous request/response.
 <!-- Input validation, rate limiting, secrets management -->
 - All request bodies validated server-side with `zod` schemas — never trust client-side validation alone (defense in depth with the frontend's own `zod` validation).
 - Ownership checks (see Authorization) on every resource access to prevent IDOR (one user accessing another user's Trip/Destination/Activity by guessing an id).
-- Basic rate limiting on `/api/auth/login` and `/api/auth/signup` (e.g. per-IP, via `@upstash/ratelimit`) to deter brute-force credential guessing.
+- Rate limiting on `/api/auth/login` and `/api/auth/signup`: 10 requests per IP per minute (via `@upstash/ratelimit`), to deter brute-force credential guessing.
 - Secrets (`DATABASE_URL`, session encryption key) stored as environment variables (`.env.local` locally, AWS Amplify Hosting environment variables in production) — never committed to the repo.
 - Session cookie is `httpOnly` + `secure`, mitigating XSS cookie theft. Because cross-origin hosting requires `sameSite: none`, the cookie's `SameSite` attribute no longer provides CSRF protection (as it would same-site) — every mutating route (`POST`/`PATCH`/`DELETE`) must explicitly check the request's `Origin` header matches the known frontend origin(s) and reject otherwise.
 - CORS is locked down to an explicit allowlist of frontend origin(s) (never `Access-Control-Allow-Origin: *`, which is both insecure and incompatible with credentialed cookies).
@@ -125,7 +128,4 @@ None for v1 — all operations are synchronous request/response.
 - Migrations: run `prisma migrate deploy` as a build step in `amplify.yml` (before `next build`) so schema changes land before the new code that depends on them.
 
 ## Open Questions
-- Vercel generates a unique preview URL per branch/PR — if preview deployments need to call this backend, `ALLOWED_ORIGIN` (a single value) won't cover them. Is a preview environment needed for v1, or is testing against `production`/`localhost` only sufficient?
-- Should there be a maximum number of Trips/Destinations/Activities per user for v1 (abuse/cost control), or is that unnecessary at this scale?
-- Is case-insensitive, trimmed username matching sufficient for uniqueness, or do we need additional username format rules (length, allowed characters)?
-- Do we need a minimum password strength/length rule at signup, and if so, what?
+None — resolved: no preview environment for v1 (test against production/localhost only), no per-user resource limits, username is 3–30 chars alphanumeric/underscore/hyphen, password minimum 8 characters (see Business Logic / Core Rules).

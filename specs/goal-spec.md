@@ -32,6 +32,9 @@ Unlike a notes app or spreadsheet, this app understands the shape of a trip — 
 <!-- Explicitly list what this project will NOT do (v1) -->
 - Auto-populating a day's activities from a suggestions dropdown/picker
 - Auto-populating activity suggestions based on trip type
+- Password reset / recovery flow (if a user forgets their password, there is no recovery path in v1)
+- Search, sort, or filter on the Trips list
+- A specific time field on Activities (just a description, ordered by insertion/manual reorder)
 - Reordering destinations within a trip after creation
 - Overlap/gap validation between destination date ranges (e.g. warning if two destinations share dates)
 - Collaborative/shared trips (multiple users editing the same trip)

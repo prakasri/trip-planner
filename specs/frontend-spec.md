@@ -116,6 +116,4 @@
 - No SEO requirements — the app is entirely behind authentication except `/login` and `/signup`.
 
 ## Open Questions
-- Is a "forgot password" flow needed in v1, or is username/password recovery out of scope entirely?
-- Should the Trips list (`/trips`) support search/sort/filter once a user has many trips, or is a flat list sufficient for v1?
-- Should Activities support a specific time field (for ordering within a Day), or just free-text/description with manual ordering?
+None — resolved: no password reset, no Trips list search/sort/filter, no Activity time field (see `goal-spec.md` → Out of Scope).

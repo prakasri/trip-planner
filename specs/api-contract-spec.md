@@ -57,6 +57,7 @@ Error:
 ```json
 { "username": "jsmith", "password": "••••••••" }
 ```
+`username`: 3–30 chars, alphanumeric/underscore/hyphen, unique case-insensitive. `password`: minimum 8 characters.
 **Response (201):**
 ```json
 { "success": true, "data": { "user": { "id": "uuid", "username": "jsmith" } } }
@@ -316,12 +317,10 @@ Clears the session cookie.
 None for v1. `GET /api/trips` returns all of the current user's Trips unpaginated, and a Destination's Activities are returned in full on `GET .../destinations/{destinationId}` — appropriate for the expected scale (a personal trip planner, not a multi-tenant SaaS product). Revisit if `backend-spec.md`'s open question about per-user resource limits lands on a high ceiling.
 
 ## Rate Limiting
-`POST /api/auth/login` and `POST /api/auth/signup` are rate-limited per-IP (exact threshold TBD — see `backend-spec.md`). Responses exceeding the limit return `429` with `RATE_LIMITED`. No rate limiting on other endpoints for v1.
+`POST /api/auth/login` and `POST /api/auth/signup` are rate-limited to 10 requests per IP per minute. Responses exceeding the limit return `429` with `RATE_LIMITED`. No rate limiting on other endpoints for v1.
 
 ## Webhooks (if any)
 None for v1.
 
 ## Open Questions
-- Should routes be prefixed `/api/v1/...` from the start to make future breaking changes easier, even though no v2 is planned yet?
-- For `PATCH .../destinations/{destinationId}` shrinking a date range: this spec rejects the edit if it would orphan an Activity's `dayNumber`. Would cascade-deleting those Activities (with a confirmation prompt) be a better UX instead?
-- Exact rate limit thresholds for `/api/auth/login` and `/api/auth/signup` (requests per IP per minute)?
+None — resolved: no `/api/v1/` prefix, reject (not cascade-delete) on orphaning date-range edits, 10 requests/IP/minute on auth endpoints.
