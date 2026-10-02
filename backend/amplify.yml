@@ -1,0 +1,20 @@
+version: 1
+applications:
+  - appRoot: backend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npx prisma generate
+            - npx prisma migrate deploy
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*

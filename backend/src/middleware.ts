@@ -3,7 +3,7 @@ import { corsHeaders, hasAllowedOrigin, handlePreflight } from "@/lib/cors";
 
 const MUTATING_METHODS = new Set(["POST", "PATCH", "DELETE"]);
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   if (request.method === "OPTIONS") {
     return handlePreflight();
   }
