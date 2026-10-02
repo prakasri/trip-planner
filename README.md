@@ -104,3 +104,9 @@ npm run test:e2e
 ## Deployment
 
 See `specs/backend-spec.md` and `specs/frontend-spec.md` for the intended production setup: frontend on Vercel, backend on AWS Amplify Hosting, database on Neon Postgres.
+
+**Live**:
+- Frontend: https://frontend-puce-alpha-55.vercel.app
+- Backend: https://main.d1fl0cwq3lbe7g.amplifyapp.com
+
+Both auto-deploy on push to `main` (Vercel and Amplify are each connected to this repo via their own GitHub integration).
